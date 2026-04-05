@@ -459,7 +459,7 @@ function enterPhase2(videoEl) {
 
   const aboutText = document.createElement('div');
   aboutText.className = 'phase2-about';
-  aboutText.textContent = "I'm a junior at UPenn studying film and economics. I stumble over cracks too frequently. I attempt a whistle invariably. I'm a performative wino who slobbers over arthouse films and oggles at a stack of books on my bedside table. Procrastination is my game, and impulse is my name. But competition motivated creation, so screw around with my website before mice seize it.";
+  aboutText.textContent = "i'm a junior at upenn studying film and economics. i stumble over cracks too frequently. i attempt a whistle invariably. i'm a performative wino who slobbers over arthouse films and lathers dust on the books beside my bed. procrastination is my game, and impulse is my name. but competition motivated the impulse to create, so screw around with my website before mice seize it.";
 
   let aboutOpen = false;
 
@@ -499,6 +499,9 @@ function enterPhase2(videoEl) {
       closeStats(() => {
         showAbout(true);
       });
+    } else if (videoPlaying) {
+      // Wait for current video to finish before playing about_idle
+      return;
     } else {
       showAbout(true);
     }
@@ -675,6 +678,9 @@ function enterPhase2(videoEl) {
   }, 60000);
 
   let statsOpen = false;
+  let videoPlaying = false; // true while CharacterSpin or reverse is mid-play
+
+  let spinEndedHandler = null;
 
   function openStats() {
     statsOpen = true;
@@ -683,46 +689,71 @@ function enterPhase2(videoEl) {
     links.classList.add('stats-open');
     animateBars();
     if (videoEl) {
+      videoPlaying = true;
       videoEl.classList.add('shifted');
       videoEl.currentTime = 0;
       videoEl.play();
-      videoEl.addEventListener('ended', () => {
+      spinEndedHandler = () => {
         videoEl.currentTime = videoEl.duration;
         videoEl.pause();
-      }, { once: true });
+        videoPlaying = false;
+      };
+      videoEl.addEventListener('ended', spinEndedHandler, { once: true });
     }
   }
 
   function closeStats(onComplete) {
     if (!statsOpen) { if (onComplete) onComplete(); return; }
-    statsOpen = false;
-    stats.classList.remove('active-tab');
-    statsPanel.classList.remove('open');
-    links.classList.remove('stats-open');
-    resetBars();
-    // Play reverse video starting in shifted position
-    if (videoEl) {
-      reverseVid.style.display = '';
-      reverseVid.classList.add('shifted');
-      videoEl.style.display = 'none';
-      reverseVid.currentTime = 0;
-      reverseVid.play();
-      // Slide back to center after a frame
-      requestAnimationFrame(() => {
-        reverseVid.classList.remove('shifted');
-      });
-      reverseVid.addEventListener('ended', () => {
-        reverseVid.currentTime = reverseVid.duration;
-        reverseVid.pause();
-        // Swap back for next time
-        reverseVid.style.display = 'none';
-        videoEl.style.display = '';
-        videoEl.classList.remove('shifted');
-        videoEl.currentTime = 0;
+
+    function doClose() {
+      statsOpen = false;
+      stats.classList.remove('active-tab');
+      statsPanel.classList.remove('open');
+      links.classList.remove('stats-open');
+      resetBars();
+      // Play reverse video starting in shifted position
+      if (videoEl) {
+        videoPlaying = true;
+        reverseVid.style.display = '';
+        reverseVid.classList.add('shifted');
+        videoEl.style.display = 'none';
+        reverseVid.currentTime = 0;
+        reverseVid.play();
+        // Slide back to center after a frame
+        requestAnimationFrame(() => {
+          reverseVid.classList.remove('shifted');
+        });
+        reverseVid.addEventListener('ended', () => {
+          reverseVid.currentTime = reverseVid.duration;
+          reverseVid.pause();
+          videoPlaying = false;
+          // Swap back for next time
+          reverseVid.style.display = 'none';
+          videoEl.style.display = '';
+          videoEl.classList.remove('shifted');
+          videoEl.currentTime = 0;
+          if (onComplete) onComplete();
+        }, { once: true });
+      } else {
         if (onComplete) onComplete();
+      }
+    }
+
+    // If CharacterSpin is still playing, wait for it to finish before closing
+    if (videoPlaying && videoEl && !videoEl.paused) {
+      // Remove the openStats handler so it doesn't conflict
+      if (spinEndedHandler) {
+        videoEl.removeEventListener('ended', spinEndedHandler);
+        spinEndedHandler = null;
+      }
+      videoEl.addEventListener('ended', () => {
+        videoEl.currentTime = videoEl.duration;
+        videoEl.pause();
+        videoPlaying = false;
+        doClose();
       }, { once: true });
     } else {
-      if (onComplete) onComplete();
+      doClose();
     }
   }
 
@@ -733,6 +764,7 @@ function enterPhase2(videoEl) {
   stats.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
+    if (videoPlaying && !statsOpen) return; // don't open stats while video is mid-play
     if (statsOpen) {
       closeStats();
     } else {

@@ -1,7 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(code --install-extension ritwickdey.LiveServer)"
-    ]
-  }
-}
