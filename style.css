@@ -498,7 +498,7 @@ body {
 
 .phase2-about {
   position: absolute;
-  left: 28px;
+  left: 0;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.3s ease;
@@ -520,7 +520,7 @@ body {
   transition: opacity 0.25s ease;
 }
 
-.phase2-links.about-open .phase2-link-item {
+.phase2-links.about-open .phase2-link-item:not(.active-tab) {
   opacity: 0;
   pointer-events: none;
 }
@@ -620,17 +620,32 @@ body {
 /* ===== Stats panel ===== */
 
 .phase2-stats {
-  position: absolute;
-  left: 28px;
+  position: fixed;
+  top: 40px;
+  left: 60px;
+  transform: none;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.3s ease;
-  margin-top: 4px;
+  z-index: 200;
+  transition: opacity 0.4s ease;
 }
 
 .phase2-stats.open {
   opacity: 1;
   pointer-events: auto;
+}
+
+.phase2-stats.dropping {
+  top: 50%;
+  transform: translateY(-50%);
+  transition: top 2s ease, transform 2s ease, opacity 0.3s ease;
+}
+
+.phase2-stats.shifted {
+  top: 50%;
+  left: 14vw;
+  transform: translateY(-50%);
+  transition: left 5s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.3s ease;
 }
 
 .phase2-stats table {
@@ -689,4 +704,93 @@ body {
 
 .stats-pip.filled {
   background: #fff;
+}
+
+/* ===== Mobile ===== */
+
+@media (max-width: 768px) {
+  /* White screen: center the hole */
+  .hole-container.original-hole {
+    bottom: auto !important;
+    right: auto !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%);
+  }
+
+  /* Black screen: nav closer to left */
+  .phase2-nav {
+    top: 28px;
+    left: 24px;
+  }
+
+  .lock-icon {
+    top: 28px;
+    right: 24px;
+  }
+
+  .phase2-name {
+    font-size: 18px;
+  }
+
+  .phase2-links a {
+    font-size: 13px;
+    margin-top: 8px;
+  }
+
+  /* About text: no indent, width stretches to lock icon area */
+  .phase2-about {
+    left: 0;
+    width: calc(100vw - 48px);
+    font-size: 12px;
+  }
+
+  /* Video sizing for mobile */
+  .phase2-video {
+    max-width: 85vw;
+    max-height: 40vh;
+  }
+
+  /* Stats panel on mobile */
+  .phase2-stats {
+    top: 40px;
+    left: 24px;
+    transform: none;
+  }
+
+  .phase2-stats.dropping {
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .phase2-stats.shifted {
+    top: 50%;
+    left: 24px;
+    transform: translateY(-50%);
+  }
+
+  .phase2-stats td {
+    font-size: 11px;
+  }
+
+  .stats-bar-label {
+    font-size: 11px;
+  }
+
+  /* Photo gallery */
+  .photo-stack {
+    width: 75vw;
+    height: 45vh;
+  }
+
+  .photo-card img {
+    max-width: 75vw;
+    max-height: 45vh;
+  }
+
+  .photo-arrow {
+    font-size: 28px;
+    padding: 0 20px;
+    height: 45vh;
+  }
 }

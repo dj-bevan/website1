@@ -2,6 +2,7 @@ let holeIdCounter = 0;
 let originalHoleRef = null;
 let secondHoleRef = null;
 let isOriginalAnimating = false;
+let cancelOriginalExpansion = false;
 let isScurrying = false;
 let hasMouseScurried = false;
 let isPhase2 = false;
@@ -24,6 +25,7 @@ function createHole(x, y, isOriginal) {
   container.className = 'hole-container';
 
   if (isOriginal) {
+    container.classList.add('original-hole');
     container.style.bottom = '40px';
     container.style.right = '60px';
   } else {
@@ -84,7 +86,10 @@ function createHole(x, y, isOriginal) {
       mouse.addEventListener('animationend', () => {
         mouse.classList.remove('peeking');
         isOriginalAnimating = false;
-        triggerBlackExpansion();
+        if (!cancelOriginalExpansion) {
+          triggerBlackExpansion();
+        }
+        cancelOriginalExpansion = false;
       }, { once: true });
     } else {
       // Clicking second hole: implode it
@@ -456,6 +461,7 @@ function enterPhase2(videoEl) {
   const about = document.createElement('a');
   about.href = '#';
   about.textContent = 'about';
+  about.className = 'phase2-link-item';
 
   const aboutText = document.createElement('div');
   aboutText.className = 'phase2-about';
@@ -469,9 +475,20 @@ function enterPhase2(videoEl) {
     aboutText.classList.remove('open');
     links.classList.remove('about-open');
     about.classList.remove('active-tab');
-    aboutVid.pause();
-    aboutVid.style.display = 'none';
-    if (videoEl) videoEl.style.display = '';
+    // Only stop about_idle if it's actually playing; let other videos finish their sequence
+    if (aboutVid.style.display !== 'none' && !aboutVid.paused) {
+      aboutVid.pause();
+      aboutVid.style.display = 'none';
+      if (videoEl) videoEl.style.display = '';
+    }
+  }
+
+  function playAboutVid() {
+    if (videoEl) videoEl.style.display = 'none';
+    reverseVid.style.display = 'none';
+    aboutVid.style.display = '';
+    aboutVid.currentTime = 0;
+    aboutVid.play();
   }
 
   function showAbout(showText) {
@@ -481,12 +498,30 @@ function enterPhase2(videoEl) {
       aboutText.classList.add('open');
       links.classList.add('about-open');
     }
-    // Hide all other videos, play about_idle
-    if (videoEl) videoEl.style.display = 'none';
-    reverseVid.style.display = 'none';
-    aboutVid.style.display = '';
-    aboutVid.currentTime = 0;
-    aboutVid.play();
+    // If a video is mid-play, wait for it to finish before playing about_idle
+    if (videoPlaying) {
+      const activeVid = (reverseVid.style.display !== 'none' && !reverseVid.paused) ? reverseVid : videoEl;
+      if (activeVid && !activeVid.paused) {
+        if (activeVid === videoEl && spinEndedHandler) {
+          videoEl.removeEventListener('ended', spinEndedHandler);
+          spinEndedHandler = null;
+        }
+        activeVid.addEventListener('ended', () => {
+          activeVid.currentTime = activeVid.duration;
+          activeVid.pause();
+          videoPlaying = false;
+          if (activeVid === reverseVid) {
+            reverseVid.style.display = 'none';
+            if (videoEl) { videoEl.style.display = ''; videoEl.classList.remove('shifted'); videoEl.currentTime = 0; }
+          }
+          if (aboutOpen) playAboutVid();
+        }, { once: true });
+      } else {
+        playAboutVid();
+      }
+    } else {
+      playAboutVid();
+    }
   }
 
   about.addEventListener('click', (e) => {
@@ -495,13 +530,15 @@ function enterPhase2(videoEl) {
     if (aboutOpen) {
       closeAbout();
     } else if (statsOpen) {
-      // Close stats with reverse video, then open about
+      // Open about description immediately, close stats, queue videos
+      aboutOpen = true;
+      about.classList.add('active-tab');
+      aboutText.classList.add('open');
+      links.classList.add('about-open');
       closeStats(() => {
-        showAbout(true);
+        // After reverse finishes, play about_idle if still open
+        if (aboutOpen) playAboutVid();
       });
-    } else if (videoPlaying) {
-      // Wait for current video to finish before playing about_idle
-      return;
     } else {
       showAbout(true);
     }
@@ -596,7 +633,7 @@ function enterPhase2(videoEl) {
   const barStats = [
     ['strength:', 3],
     ['metabolism:', 5],
-    ['eye contact:', 4],
+    ['eye contact:', 3],
     ['stinginess:', 5],
     ['intelligence:', 4],
     ['libido:', 1],
@@ -688,30 +725,72 @@ function enterPhase2(videoEl) {
     statsPanel.classList.add('open');
     links.classList.add('stats-open');
     animateBars();
-    if (videoEl) {
-      videoPlaying = true;
-      videoEl.classList.add('shifted');
-      videoEl.currentTime = 0;
-      videoEl.play();
-      spinEndedHandler = () => {
-        videoEl.currentTime = videoEl.duration;
-        videoEl.pause();
-        videoPlaying = false;
-      };
-      videoEl.addEventListener('ended', spinEndedHandler, { once: true });
+
+    // Step 1: drop down to center
+    requestAnimationFrame(() => {
+      statsPanel.classList.add('dropping');
+    });
+
+    function playSpin() {
+      if (videoEl) {
+        videoPlaying = true;
+        videoEl.classList.add('shifted');
+        // Step 2: slide right after drop completes
+        setTimeout(() => {
+          statsPanel.classList.remove('dropping');
+          statsPanel.classList.add('shifted');
+        }, 2000);
+        videoEl.currentTime = 0;
+        videoEl.play();
+        spinEndedHandler = () => {
+          videoEl.currentTime = videoEl.duration;
+          videoEl.pause();
+          videoPlaying = false;
+        };
+        videoEl.addEventListener('ended', spinEndedHandler, { once: true });
+      }
+    }
+
+    // If a video is mid-play (e.g. reverse from closing about), wait for it
+    if (videoPlaying) {
+      const waitVid = reverseVid.style.display !== 'none' ? reverseVid : videoEl;
+      if (waitVid && !waitVid.paused) {
+        waitVid.addEventListener('ended', () => {
+          waitVid.currentTime = waitVid.duration;
+          waitVid.pause();
+          videoPlaying = false;
+          if (waitVid === reverseVid) {
+            reverseVid.style.display = 'none';
+            videoEl.style.display = '';
+            videoEl.classList.remove('shifted');
+            videoEl.currentTime = 0;
+          }
+          if (statsOpen) playSpin();
+        }, { once: true });
+      } else {
+        playSpin();
+      }
+    } else {
+      playSpin();
     }
   }
 
   function closeStats(onComplete) {
     if (!statsOpen) { if (onComplete) onComplete(); return; }
 
-    function doClose() {
-      statsOpen = false;
-      stats.classList.remove('active-tab');
-      statsPanel.classList.remove('open');
-      links.classList.remove('stats-open');
-      resetBars();
-      // Play reverse video starting in shifted position
+    // Close the tab UI instantly
+    statsOpen = false;
+    stats.classList.remove('active-tab');
+    statsPanel.classList.remove('open');
+    links.classList.remove('stats-open');
+    resetBars();
+    // Fade out from current position, then reset position classes
+    setTimeout(() => {
+      statsPanel.classList.remove('shifted');
+      statsPanel.classList.remove('dropping');
+    }, 400);
+
+    function playReverse() {
       if (videoEl) {
         videoPlaying = true;
         reverseVid.style.display = '';
@@ -719,7 +798,6 @@ function enterPhase2(videoEl) {
         videoEl.style.display = 'none';
         reverseVid.currentTime = 0;
         reverseVid.play();
-        // Slide back to center after a frame
         requestAnimationFrame(() => {
           reverseVid.classList.remove('shifted');
         });
@@ -727,7 +805,6 @@ function enterPhase2(videoEl) {
           reverseVid.currentTime = reverseVid.duration;
           reverseVid.pause();
           videoPlaying = false;
-          // Swap back for next time
           reverseVid.style.display = 'none';
           videoEl.style.display = '';
           videoEl.classList.remove('shifted');
@@ -739,9 +816,8 @@ function enterPhase2(videoEl) {
       }
     }
 
-    // If CharacterSpin is still playing, wait for it to finish before closing
+    // If CharacterSpin is still playing, wait for it to finish before playing reverse
     if (videoPlaying && videoEl && !videoEl.paused) {
-      // Remove the openStats handler so it doesn't conflict
       if (spinEndedHandler) {
         videoEl.removeEventListener('ended', spinEndedHandler);
         spinEndedHandler = null;
@@ -750,10 +826,10 @@ function enterPhase2(videoEl) {
         videoEl.currentTime = videoEl.duration;
         videoEl.pause();
         videoPlaying = false;
-        doClose();
+        playReverse();
       }, { once: true });
     } else {
-      doClose();
+      playReverse();
     }
   }
 
@@ -764,7 +840,6 @@ function enterPhase2(videoEl) {
   stats.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (videoPlaying && !statsOpen) return; // don't open stats while video is mid-play
     if (statsOpen) {
       closeStats();
     } else {
@@ -800,7 +875,7 @@ function enterPhase2(videoEl) {
   links.appendChild(letterboxd);
   links.appendChild(photo);
   links.appendChild(stats);
-  links.appendChild(statsPanel);
+  document.body.appendChild(statsPanel);
 
   // Lock icon – top-right corner
   const lockIcon = document.createElement('div');
@@ -1136,7 +1211,7 @@ if (localStorage.getItem('djbevan_phase') === '2') {
   originalHoleRef = createHole(0, 0, true);
 
   // Auto-trigger peek 7s after page load
-  setTimeout(() => {
+  const autoOpenTimer = setTimeout(() => {
     if (isPhase2 || isOriginalAnimating || isScurrying || secondHoleRef) return;
     const mouse = originalHoleRef.querySelector('.mouse');
     if (!mouse) return;
@@ -1145,7 +1220,10 @@ if (localStorage.getItem('djbevan_phase') === '2') {
     mouse.addEventListener('animationend', () => {
       mouse.classList.remove('peeking');
       isOriginalAnimating = false;
-      triggerBlackExpansion();
+      if (!cancelOriginalExpansion) {
+        triggerBlackExpansion();
+      }
+      cancelOriginalExpansion = false;
     }, { once: true });
   }, 7000);
 
@@ -1153,6 +1231,10 @@ if (localStorage.getItem('djbevan_phase') === '2') {
     if (isPhase2) return;
     if (e.target !== document.body) return;
     if (secondHoleRef || isScurrying) return;
+    clearTimeout(autoOpenTimer);
+    if (isOriginalAnimating) {
+      cancelOriginalExpansion = true;
+    }
     secondHoleRef = createHole(e.clientX, e.clientY, false);
     hasMouseScurried = false;
   });
