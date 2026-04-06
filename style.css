@@ -621,7 +621,6 @@ body {
 
 .phase2-stats {
   position: fixed;
-  top: 40px;
   left: 60px;
   transform: none;
   opacity: 0;
@@ -636,15 +635,13 @@ body {
 }
 
 .phase2-stats.dropping {
-  top: 50%;
-  transform: translateY(-50%);
-  transition: top 2s ease, transform 2s ease, opacity 0.3s ease;
+  transform: translateY(6vh);
+  transition: transform 2s ease, opacity 0.3s ease;
 }
 
 .phase2-stats.shifted {
-  top: 50%;
   left: 14vw;
-  transform: translateY(-50%);
+  transform: translateY(6vh);
   transition: left 5s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.3s ease;
 }
 
@@ -755,22 +752,10 @@ body {
     left: 72.5%;
   }
 
-  /* Stats panel on mobile */
+  /* Stats panel on mobile — no drop/slide, just fade */
   .phase2-stats {
-    top: 40px;
     left: 24px;
     transform: none;
-  }
-
-  .phase2-stats.dropping {
-    top: 50%;
-    transform: translateY(-50%);
-  }
-
-  .phase2-stats.shifted {
-    top: 50%;
-    left: 24px;
-    transform: translateY(-50%);
   }
 
   .phase2-stats td {

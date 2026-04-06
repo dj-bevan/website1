@@ -601,8 +601,8 @@ function enterPhase2(videoEl) {
   // Local time helper
   function getLocalTime() {
     const now = new Date();
-    const pragueTime = now.toLocaleString('en-GB', { timeZone: 'Europe/Prague', hour: '2-digit', minute: '2-digit', hour12: false });
-    return 'prague, ' + pragueTime;
+    const londonTime = now.toLocaleString('en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit', hour12: false });
+    return 'london, ' + londonTime;
   }
 
   const statsTable = document.createElement('table');
@@ -724,6 +724,10 @@ function enterPhase2(videoEl) {
   function openStats() {
     statsOpen = true;
     stats.classList.add('active-tab');
+    // Start the panel just below the stats tab
+    const statsRect = stats.getBoundingClientRect();
+    statsPanel.style.top = statsRect.bottom + 'px';
+
     statsPanel.classList.add('open');
     links.classList.add('stats-open');
     animateBars();
@@ -794,6 +798,7 @@ function enterPhase2(videoEl) {
     setTimeout(() => {
       statsPanel.classList.remove('shifted');
       statsPanel.classList.remove('dropping');
+      statsPanel.style.top = '';
     }, 400);
 
     function playReverse() {

@@ -10,7 +10,7 @@ export default {
     const headers = {
       'Access-Control-Allow-Origin': '*',
       'Content-Type': 'application/json',
-      'Cache-Control': 'max-age=300',
+      'Cache-Control': 'max-age=43200',
     };
 
     try {
