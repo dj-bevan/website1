@@ -751,6 +751,10 @@ body {
     max-height: 40vh;
   }
 
+  .phase2-video.shifted {
+    left: 72.5%;
+  }
+
   /* Stats panel on mobile */
   .phase2-stats {
     top: 40px;

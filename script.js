@@ -483,8 +483,10 @@ function enterPhase2(videoEl) {
     }
   }
 
+  const isMobile = window.matchMedia('(max-width: 768px)').matches;
+
   function playAboutVid() {
-    if (videoEl) videoEl.style.display = 'none';
+    if (!isMobile && videoEl) videoEl.style.display = 'none';
     reverseVid.style.display = 'none';
     aboutVid.style.display = '';
     aboutVid.currentTime = 0;
@@ -726,20 +728,24 @@ function enterPhase2(videoEl) {
     links.classList.add('stats-open');
     animateBars();
 
-    // Step 1: drop down to center
-    requestAnimationFrame(() => {
-      statsPanel.classList.add('dropping');
-    });
+    // Step 1: drop down to center (skip on mobile, just fade in)
+    if (!isMobile) {
+      requestAnimationFrame(() => {
+        statsPanel.classList.add('dropping');
+      });
+    }
 
     function playSpin() {
       if (videoEl) {
         videoPlaying = true;
         videoEl.classList.add('shifted');
-        // Step 2: slide right after drop completes
-        setTimeout(() => {
-          statsPanel.classList.remove('dropping');
-          statsPanel.classList.add('shifted');
-        }, 2000);
+        // Step 2: slide right after drop completes (skip on mobile)
+        if (!isMobile) {
+          setTimeout(() => {
+            statsPanel.classList.remove('dropping');
+            statsPanel.classList.add('shifted');
+          }, 2000);
+        }
         videoEl.currentTime = 0;
         videoEl.play();
         spinEndedHandler = () => {
