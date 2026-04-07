@@ -475,6 +475,11 @@ function enterPhase2(videoEl) {
     aboutText.classList.remove('open');
     links.classList.remove('about-open');
     about.classList.remove('active-tab');
+    if (isMobile) {
+      // On mobile, about_idle stays visible
+      if (!aboutVid.paused) aboutVid.pause();
+      return;
+    }
     // Only stop about_idle if it's actually playing; let other videos finish their sequence
     if (aboutVid.style.display !== 'none' && !aboutVid.paused) {
       aboutVid.pause();
@@ -571,6 +576,12 @@ function enterPhase2(videoEl) {
   reverseVid.style.display = 'none';
   document.body.appendChild(reverseVid);
 
+  // On mobile: show about_idle as default video, hide CharacterSpin/reverse
+  if (isMobile) {
+    aboutVid.style.display = '';
+    if (videoEl) videoEl.style.display = 'none';
+  }
+
   // Click center video to trigger about_idle (only at rest)
   function isVideoAtRest(v) {
     return v && v.paused && (v.currentTime < 0.1 || v.currentTime >= v.duration - 0.1);
@@ -636,9 +647,9 @@ function enterPhase2(videoEl) {
     ['strength:', 3],
     ['metabolism:', 5],
     ['eye contact:', 3],
-    ['stinginess:', 5],
+    ['rumination:', 4],
     ['intelligence:', 4],
-    ['libido:', 1],
+    ['hairline:', 1],
     ['luck:', 5],
   ];
 
@@ -739,6 +750,18 @@ function enterPhase2(videoEl) {
       });
     }
 
+    // Mobile: play about_idle and slide video down below stats
+    if (isMobile) {
+      aboutVid.currentTime = 0;
+      aboutVid.play();
+      requestAnimationFrame(() => {
+        const statsBottom = statsPanel.getBoundingClientRect().bottom;
+        aboutVid.style.top = (statsBottom + 8) + 'px';
+        aboutVid.style.transform = 'translate(-50%, 0)';
+      });
+      return;
+    }
+
     function playSpin() {
       if (videoEl) {
         videoPlaying = true;
@@ -800,6 +823,14 @@ function enterPhase2(videoEl) {
       statsPanel.classList.remove('dropping');
       statsPanel.style.top = '';
     }, 400);
+
+    // Mobile: slide video back up, no reverse video
+    if (isMobile) {
+      aboutVid.style.top = '50%';
+      aboutVid.style.transform = 'translate(-50%, -50%)';
+      if (onComplete) onComplete();
+      return;
+    }
 
     function playReverse() {
       if (videoEl) {

@@ -742,14 +742,11 @@ body {
     font-size: 12px;
   }
 
-  /* Video sizing for mobile */
+  /* Video sizing for mobile — slide up/down with ease-out */
   .phase2-video {
     max-width: 85vw;
     max-height: 40vh;
-  }
-
-  .phase2-video.shifted {
-    left: 72.5%;
+    transition: top 1.5s ease-out, transform 1.5s ease-out, opacity 0.4s ease;
   }
 
   /* Stats panel on mobile — no drop/slide, just fade */
