@@ -579,6 +579,8 @@ function enterPhase2(videoEl) {
   // On mobile: show about_idle as default video, hide CharacterSpin/reverse
   if (isMobile) {
     aboutVid.style.display = '';
+    aboutVid.currentTime = 0;
+    aboutVid.play();
     if (videoEl) videoEl.style.display = 'none';
   }
 
@@ -644,13 +646,13 @@ function enterPhase2(videoEl) {
 
   // Bar stats
   const barStats = [
-    ['strength:', 3],
     ['metabolism:', 5],
-    ['eye contact:', 3],
+    ['luck:', 5],
     ['rumination:', 4],
     ['intelligence:', 4],
+    ['strength:', 3],
+    ['eye contact:', 3],
     ['hairline:', 1],
-    ['luck:', 5],
   ];
 
   const barsContainer = document.createElement('div');
